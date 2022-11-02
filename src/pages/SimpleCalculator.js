@@ -1,33 +1,182 @@
-import React from "react";
+import React, { useReducer } from "react";
 import "./Style.css";
+import DigitBtn from "../components/DigitBtn";
+import OperationBtn from "../components/OperationBtn";
 
-const SimpleCalculator = () => {
+export const ACTIONS = {
+  ADD_DIGIT: "add-digit",
+  CHOOSE_OPERATION: "choose-operation",
+  CLEAR: "clear",
+  DELETE_DIGIT: "delete-digit",
+  EVALUATE: "evaluate",
+};
+
+function reducer(state, { type, payload }) {
+  // eslint-disable-next-line
+  switch (type) {
+    case ACTIONS.ADD_DIGIT:
+      if (state.overwrite) {
+        return {
+          ...state,
+          currentOperand: payload.digit,
+          overwrite: false,
+        };
+      }
+
+      if (payload.digit === "0" && state.currentOperand === "0") {
+        return state;
+      }
+
+      if (payload.digit === "." && state.currentOperand.includes(".")) {
+        return state;
+      }
+
+      return {
+        ...state,
+        currentOperand: `${state.currentOperand || ""}${payload.digit}`,
+      };
+
+    case ACTIONS.CHOOSE_OPERATION:
+      if (state.currentOperand == null && state.previousOperand == null) {
+        return state;
+      }
+
+      if (state.previousOperand == null) {
+        return {
+          ...state,
+          operation: payload.operation,
+          previousOperand: state.currentOperand,
+          currentOperand: null,
+        };
+      }
+
+      if (state.currentOperand == null) {
+        return {
+          ...state,
+          operation: payload.operation,
+        };
+      }
+
+      return {
+        ...state,
+        operation: payload.operation,
+        previousOperand: evaluate(state),
+        currentOperand: null,
+      };
+
+    case ACTIONS.CLEAR:
+      return {};
+
+    case ACTIONS.DELETE_DIGIT:
+      if (state.overwrite) {
+        return {
+          ...state,
+          overwrite: false,
+          currentOperand: null,
+        };
+      }
+      if (state.currentOperand == null) return state;
+      if (state.currentOperand.length === 1) {
+        return { ...state, currentOperand: null };
+      }
+
+      return {
+        ...state,
+        currentOperand: state.currentOperand.slice(0, -1),
+      };
+
+    case ACTIONS.EVALUATE:
+      if (
+        state.currentOperand == null ||
+        state.previousOperand == null ||
+        state.operation == null
+      ) {
+        return state;
+      }
+
+      return {
+        ...state,
+        previousOperand: null,
+        operation: null,
+        currentOperand: evaluate(state),
+        overwrite: true,
+      };
+  }
+}
+
+function evaluate({ currentOperand, previousOperand, operation }) {
+  const prev = parseFloat(previousOperand);
+  const curr = parseFloat(currentOperand);
+
+  if (isNaN(prev) || isNaN(curr)) return "";
+
+  let result = "";
+  
+  // eslint-disable-next-line
+  switch (operation) {
+    case "+":
+      result = prev + curr;
+      break;
+    case "-":
+      result = prev - curr;
+      break;
+    case "*":
+      result = prev * curr;
+      break;
+    case "/":
+      result = prev / curr;
+      break;
+  }
+
+  return result.toString();
+}
+
+function SimpleCalculator() {
+  const [{ currentOperand, previousOperand, operation }, dispatch] = useReducer(
+    reducer,
+    {}
+  );
+
   return (
     <div className="calculator-gird">
       <div className="output">
-        <div className="previous-operand">1234 *</div>
-        <div className="current-operand">1234</div>
+        <div className="previous-operand">
+          {previousOperand} {operation}
+        </div>
+        <div className="current-operand">{currentOperand}</div>
       </div>
-      <button className="span-two">AC</button>
-      <button>DEL</button>
-      <button>/</button>
-      <button>1</button>
-      <button>2</button>
-      <button>3</button>
-      <button>*</button>
-      <button>4</button>
-      <button>5</button>
-      <button>6</button>
-      <button>+</button>
-      <button>7</button>
-      <button>8</button>
-      <button>9</button>
-      <button>-</button>
-      <button>.</button>
-      <button>0</button>
-      <button className="span-two">=</button>
+      <button
+        className="span-two"
+        onClick={() => dispatch({ type: ACTIONS.CLEAR })}
+      >
+        AC
+      </button>
+      <button onClick={() => dispatch({ type: ACTIONS.DELETE_DIGIT })}>
+        DEL
+      </button>
+      <OperationBtn operation="/" dispatch={dispatch} />
+      <DigitBtn digit="1" dispatch={dispatch} />
+      <DigitBtn digit="2" dispatch={dispatch} />
+      <DigitBtn digit="3" dispatch={dispatch} />
+      <OperationBtn operation="*" dispatch={dispatch} />
+      <DigitBtn digit="4" dispatch={dispatch} />
+      <DigitBtn digit="5" dispatch={dispatch} />
+      <DigitBtn digit="6" dispatch={dispatch} />
+      <OperationBtn operation="+" dispatch={dispatch} />
+      <DigitBtn digit="7" dispatch={dispatch} />
+      <DigitBtn digit="8" dispatch={dispatch} />
+      <DigitBtn digit="9" dispatch={dispatch} />
+      <OperationBtn operation="-" dispatch={dispatch} />
+      <DigitBtn digit="." dispatch={dispatch} />
+      <DigitBtn digit="0" dispatch={dispatch} />
+      <button
+        className="span-two"
+        onClick={() => dispatch({ type: ACTIONS.EVALUATE })}
+      >
+        =
+      </button>
     </div>
   );
-};
+}
 
 export default SimpleCalculator;
